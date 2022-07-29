@@ -1,0 +1,101 @@
+SIM.DARMA<-function(start.theta,y,method=c("Nelder-Mead","BFGS","CG","L-BFGS-B","SANN"))
+{
+  #start.theta<-c(0.5,0.8,3.5,11.2,3.0,5.0,3.0)
+  LI<-rep(min(start.theta),length(start.theta))
+  LS<-rep(max(start.theta),length(start.theta))
+    #------Estimação------------------------------------------------------------
+    if(method=="L-BFGS-B"){
+      tmp<-try(optim(par=start.theta,fn=loglike_cond_DARMA,y=y,method="L-BFGS-B",hessian=F,p=2,q=1,tau=tau,
+                     control=list(fnscale=-1),m.optim=1,lower=LI,upper=LS))
+    }else{
+      tmp<-try(optim(par=start.theta,fn=loglike_cond_DARMA,y=y,method=method,hessian=F,p=2,q=1,tau=tau,
+                     control=list(fnscale=-1),m.optim=1))
+    }
+    tmp2<-test.fun(tmp)
+    if(class(tmp2)=="numeric"){
+      coef<-tmp2
+    }else{coef<-rep(NA,length(start.theta))}
+  return(coef)
+}
+#-------------------------------------------------------------------------------
+loglike_cond_DARMA<-function(z,y,p=2,q=1,tau,m.optim){
+  #xi=c(phi's,theta's,delta,lambda,sigma,eta,gama,beta's) #xi<-p+q+5+k+1
+  #--------------------------------------
+  link<-make.link("log")
+  #const<-0<---------------------------------------------
+  k<-0
+  phi<-z[1:p]
+  theta<-z[(p+1):(p+q)]
+  delta<-z[p+q+1]
+  lambda<-z[p+q+2]
+  sigma<-z[p+q+3]
+  eta<-z[p+q+4]
+  gama<-z[p+q+5]
+  #--------------------------------------
+  ar<-1:length(phi)
+  ma<-1:length(theta)
+  n<-length(y)
+  ynew<-link$linkfun(y)
+  error<-rep(0,n)#E(error)=0 
+  etat<-rep(NA,n)#eta
+  m<-max(p,q,na.rm=T)
+  #--------------------------------------
+  for(i in (m+1):n){
+    etat[i]<-k+(phi%*%ynew[i-ar])+(theta%*%error[i-ma])
+    error[i]<-ynew[i]-etat[i] # predictor scale
+  }
+  #--------------------------------------
+  mut<-link$linkinv(etat[(m+1):n])
+  y<-y[(m+1):n]
+  A<-(1-tau)^(1/lambda)
+  B<-(1-A)^(1/eta)
+  C<-(1-B)^(1/gama)
+  D<-(1-C)^(-1/sigma)
+  alpha<-(D-1)*exp(delta*log(mut))
+  #--------------------------------------
+  fdp<-deged(x=y,alpha=alpha,delta=delta,sigma=sigma,gama=gama,eta=eta,lambda=lambda)
+  fdp<-suppressWarnings(log(fdp))
+  fdp = fdp[!(is.infinite(fdp) | is.na(drop(fdp)))]
+  loglike<-suppressWarnings(sum(fdp))
+  #return(loglike)
+  if(m.optim==-1.0){return(-loglike)} 
+  if(m.optim==1.0){return(loglike)}
+}
+#-------------------------------------------------------------------------------
+is.positive<-function(a)
+{
+  #todas as posições do vetor são positivas
+  k<-length(a)
+  tmp<-sum(a>0)
+  return(k==tmp)
+}
+#-------------------------------------------------------------------------------
+test.fun<-function(object){
+  if(class(object)=="list"){
+    parameters<-try(object$par,T)
+    #hess<-try(object$hessian,T)
+    #var.coef<-try(diag(solve(-hess)),T)
+    if(is.numeric(parameters)==TRUE){
+      #if(is.numeric(var.coef)==TRUE){
+        #if(is.positive(var.coef)==TRUE){
+          z<-c(parameters)
+          #z$pars<-parameters
+          #z$var.coef<-var.coef 
+          return(z)
+        #}else{return(FALSE)}
+      #}else{return(FALSE)}
+    }else{return(FALSE)}
+  }else{return(FALSE)}
+}
+#-------------------------------------------------------------------------------
+#Função Densidade de Probabilidade
+deged<-function(x,alpha,delta,sigma,gama,eta,lambda){
+  A<-(1+alpha*(x^(-delta)))^(-sigma-1)
+  B<-1-(1+alpha*(x^(-delta)))^(-sigma)
+  fxn<-(lambda*alpha*sigma*delta*eta*gama)*
+    (x^(-delta-1))*A*(B^(gama-1))*
+    ((1-(B^gama))^(eta-1))*
+    ((1-(1-(B^gama))^eta)^(lambda-1))
+  return(fxn)
+}
+#-------------------------------------------------------------------------------
