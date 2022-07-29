@@ -6,6 +6,7 @@ library(doParallel)
 library(foreach)
 #------Carrega as Funções Necessárias-------------------------------------------
 source("SIM.DARMA.R")
+source("darma.sim.r")
 #-------------------------------------------------------------------------------
 
 cores=detectCores()
@@ -13,14 +14,14 @@ cl <- makeCluster(cores[1]-2) #not to overload your computer
 registerDoParallel(cl)
 #stopCluster(cl)
 
-n<-100
+n<-250
 re<-5000
 delta<-3.5
 sigma<-11.2
 gama<-3.0
 eta<-5
 lambda<-3
-beta<-c(0.5,0.2,1.5)
+#beta<-c(0.5,0.2,1.5)
 tau<-0.5
 freq<-1
 const<-0
@@ -47,7 +48,7 @@ time<-system.time(
   }
 )
 output<-as.data.frame(estimate[])
-save(output,file=paste0("simun",n,"CG","p2.RData"))
+save(output,file=paste0("simu_ARMA(2,1)",n,"CG","p2.RData"))
 #save(output,file=paste0("simun",n,"CG",".RData"))
 time
 
