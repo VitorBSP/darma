@@ -1,5 +1,6 @@
 library(ggplot2)
 library(dplyr)
+library(latex2exp)
 
 # Carregando simulações
 miceadds::load.Rdata("./simulacoes/simun100CG.RData", 'simu_100')
@@ -84,15 +85,15 @@ resultados_darma %>%
   geom_line(aes(x=N, y=CC, color = estrutura_parametros), 
             size = 2) +
   geom_point(aes(x=N, y=CC, color = estrutura_parametros), size = 3) +
-  scale_color_brewer(labels = unname(TeX(c("$\\phi$ - Cenário 1", 
-                                             "$\\theta$  - Cenário 1",
-                                             "$\\phi_2$ - Cenário 2", 
-                                             "$\\phi_1$ - Cenário 2",
-                                             "$\\theta$ - Cenário 2"))),
+  scale_color_brewer(labels = unname(TeX(c("$\\widehat{\\phi}$ - C1", 
+                                             "$\\widehat{\\theta}$  - C1",
+                                             "$\\widehat{\\phi_2}$ - C2", 
+                                             "$\\widehat{\\phi_1}$ - C2",
+                                             "$\\widehat{\\theta}$ - C2"))),
                      palette = 'Paired') +
   theme_minimal() +
-  labs(x = 'Tamanho amostral', y= "Valores das Medidas", 
-       color = "Parâmetros")
+  labs(x = 'Tamanho amostral', y= "Coeficiente de Curtose", 
+       color = "Estimadores")
 
 # resultados_darma %>%
 #   group_by(parametros, N) %>% # Also group_by(across(-comment)) would work with the example
